@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview"
+  },
+  "author": "Benbinbin <benthomsonbin@gmail.com> (https://benbinbin.com)",
+  "devDependencies": {
+    "bloginote-test": "2.0.0",
+    "nuxt": "3.0.0-rc.9"
+  }
+}
