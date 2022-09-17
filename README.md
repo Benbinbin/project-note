@@ -2,7 +2,7 @@
 
 ## Introduction
 
-:link: https://web-note.benbinbin.com/
+:link: https://project-note.benbinbin.com/
 
 Hi :wave: I'm Ben
 
