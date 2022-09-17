@@ -1,3 +1,7 @@
+---
+series: Two Dishes One Fish
+---
+
 # Two Dishes One Fish
 two-dishes-one-fish is a VuePress-next template to build a static website as blog and knowledge management system.
 tags:

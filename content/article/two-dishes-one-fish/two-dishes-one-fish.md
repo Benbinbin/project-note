@@ -1,3 +1,7 @@
+---
+series: Two Dishes One Fish
+---
+
 # 一鱼两吃
 two-dishes-one-fish 是一个 VuePress-next 模板，用以构架一个静态网站作为部落格和学习笔记管理系统。
 
