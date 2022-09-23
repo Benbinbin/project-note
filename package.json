@@ -8,7 +8,7 @@
   },
   "author": "Benbinbin <benthomsonbin@gmail.com> (https://benbinbin.com)",
   "devDependencies": {
-    "bloginote-test": "2.2.0",
-    "nuxt": "3.0.0-rc.9"
+    "bloginote-test": "2.5.3",
+    "nuxt": "3.0.0-rc.11"
   }
 }

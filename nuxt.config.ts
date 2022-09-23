@@ -63,4 +63,16 @@ export default defineNuxtConfig({
       preload: ['scss'],
     },
   },
+  runtimeConfig: {
+    rss: {
+      title: 'Project Note',
+      description: 'This website some notes about my projects.',
+      image: 'https://project-note.benbinbin.com/avatar.png',
+      favicon: 'https://project-note.benbinbin.com/favicon.ico',
+      copyright: `All rights reserved ${(new Date()).getFullYear()}, Benbinbin`
+    },
+    public: {
+      hostname: 'https://project-note.benbinbin.com',
+    }
+  },
 })
