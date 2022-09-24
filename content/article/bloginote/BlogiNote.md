@@ -2682,3 +2682,183 @@ const scrollToZoomHandler = (event) => {
     }
   }
   ```
+
+### Remark 插件
+
+## Sitemap 与 RSS Feed
+Nuxt Content 模块的[文档](https://content.nuxtjs.org/guide/recipes/sitemap)有给出如何设置 Sitemap 的方法，可以让 Google 等搜索引擎更好地解析网页。
+
+利用类似的方法，可以为网址创建 RSS Feed，可以让访问者使用 RSS 阅读器订阅。当我们发布或更新文章时，RSS 阅读器就会主动获取到，十分方便。
+
+### Sitemap
+
+首先需要安装相关的依赖包（用于生产 `*.xml` 文件）
+
+```bash
+yarn add sitemap
+```
+
+然后在项目的 :file_folder: `/server/routes` 文件夹中添加 `sitemap.xml.ts` 文件
+
+::TipBox{type="announce"}
+Nuxt 会自动扫描 :file_folder: [`server` 目录](https://v3.nuxtjs.org/guide/directory-structure/server)中的文件并注册相应的 API。
+
+在文章的前面内容提到 Nuxt 会根据 :file_folder: `Pages` 中文件创建相应的路由和页面。这里的方式也是类似的，会根据 :file_folder: `server` 目录中的目录结构创建相应的 API。
+::
+
+```ts [/server/routes/sitemap.xml.ts] {2, 4}
+import { serverQueryContent } from '#content/server' // 该方法是 Nuxt Content 模块提供的，可以在 server 端运行，获取文档数据
+import { defineEventHandler } from 'h3'
+import { SitemapStream, streamToPromise } from 'sitemap'
+import { useRuntimeConfig } from '#imports'
+
+// 每一个在 📁 server 目录里的文件都需要默认导出一个 defineEventHandler 方法，用于创建相应的 API
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig()
+
+  // 获取所有文章
+  // 文档数据是 mdast 格式
+  const docs = await serverQueryContent(event).find()
+
+  // 对文章进行筛选，只选出类型为 markdown 的文件添加到 sitemap 中
+  const articles = docs.filter(doc => doc?._type === 'markdown')
+
+  // 创建 Sitemap
+  const sitemap = new SitemapStream({
+    hostname: config.public.hostname
+  })
+
+  for (const article of articles) {
+    // 迭代文章以创建相应的 sitemap 条目
+    sitemap.write({
+      url: article._path,
+      changefreq: 'monthly'
+    })
+  }
+
+  sitemap.end()
+
+  // 最后需要返回 JSON 数据，或是一个 Promise，或者是 `event.res.end()` 返回一个响应
+  return streamToPromise(sitemap)
+})
+```
+
+::TipBox{type="warning"}
+特别需要注意的是目前在 :file_folder: `server` 目录中，并**不**支持[自动导入 auto-import](https://v3.nuxtjs.org/guide/concepts/auto-imports)，因此在 `sitemap.xml.ts` 文件的开头需要显式地导入 Nuxt 或 Vue 所提供的内置函数，如 `useRuntimeConfig`、`defineEventHandler` 等（Nuxt 使用的后端服务器是 `h3`，其中 `defineEventHandler` 方法就是由 `h3` 提供的）
+::
+
+:hammer: 最终的效果可以查看这个[网页](https://bloginote.benbinbin.com/sitemap.xml)。
+
+最后为了在 server side rendering 时可以生成相应的 `sitemap.xml` 文件，需要在 :page_facing_up: `nuxt.config.ts` 文件中进行配置，让 crawler 爬虫访问特定的 API，生成 `sitemap.xml` 文件
+
+```ts [nuxt.config.ts]
+export default defineNuxtConfig({
+  // ...
+  nitro: {
+    prerender: {
+      routes: ['/sitemap.xml']
+    }
+  },
+  // ...
+})
+```
+
+### RSS
+
+::TipBox{type="tip"}
+参考：
+
+* [Create an RSS Feed With Nuxt 3 and Nuxt Content v2](https://mokkapps.de/blog/create-an-rss-feed-with-nuxt-3-and-nuxt-content-v2/)
+* [How to generate an RSS feed for a Nuxt Content site](https://journal.maciejpedzi.ch/generating-rss-feeds-for-a-nuxt-content-site)
+::
+
+要为网址生成 RSS Feed 也是通过类似的步骤，只是使用的依赖包不同。
+
+首先需要安装相关的依赖包（用于生产 `*.xml` 文件）
+
+```bash
+yarn add feed
+```
+
+然后在项目的 :file_folder: `/server/routes` 文件夹中添加 `rss.xml.ts` 文件
+
+```ts [/server/routes/rss.xml/ts]
+import { Feed } from 'feed'
+import { defineEventHandler, appendHeader } from 'h3'
+import { serverQueryContent } from '#content/server'
+import { useRuntimeConfig } from '#imports'
+
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig()
+
+  // 设置 feed 的相关信息
+  // 因为主题的使用者会为项目指定一个域名
+  // 所以这里的相关信息并不「写死」，而是读取配置文件相关参数
+  const feed = new Feed({
+    id: config.public.hostname, // 标识符
+    title: config.rss.title, // feed 标题
+    description: config.rss.description, // feed 描述
+    link: config.public.hostname, // feed 所指向的网站链接
+    image: config.rss.image, // feed 图标
+    copyright: config.rss.copyright // 版权声明
+  })
+
+  // 获取所有文档
+  const docs = await serverQueryContent(event).find()
+
+  // 从中筛选出 markdown 文档
+  // 数据结构是 mdast
+  const articles = docs.filter(doc => doc?._type === 'markdown')
+
+  if (articles.length > 0) {
+    // 设置 feed 条目
+    articles.forEach((article) => {
+      // 由于 RSS 阅读器会根据条目的时间来提供阅读者是否有文章更新
+      // 所以推荐为 feed 条目设置日期 date
+      let articleDate
+
+      // 这里根据文章所提供的不同信息，选择合适的 updated 或 created 属性值构建 Date 对象
+      if (article.updated) {
+        articleDate = new Date(article.updated)
+      } else if (article.created) {
+        articleDate = new Date(article.created)
+      }
+
+      feed.addItem({
+        id: article._path, // 条目的标识符
+        title: article.title, // 条目的标题
+        link: `${config.public.hostname}${article._path}`, // 条目所指向的网页链接
+        description: article.description, // 条目的简介
+        // 该属性应该是文章的全文（支持 HTML 内容）
+        // 但目前 Nuxt Content 并没有提供显式的方法将 mdast 转换为 html
+        // 虽然已经有人尝试获取全文放到 feed 里面 https://journal.maciejpedzi.ch/generating-rss-feeds-for-a-nuxt-content-site
+        // 但是考虑到 Nuxt Content 支持 MDC，所以文章并不是完全的静态网页，可能会有一些可交互的动态组件
+        // 所以是否需要在 feed 里添加文章全文还有商榷的余地（可能导致 RSS 阅读器无法正确解析全文内容）
+        content: 'this should be the full content', // 这里先预设一段话作为该属性的占位值
+        date: articleDate // 条目更新时间
+      })
+    })
+  }
+
+  // 设置响应的头部信息
+  appendHeader(event, 'Content-Type', 'application/xml')
+
+  return feed.rss2()
+})
+```
+
+:hammer: 最终的效果可以查看这个[网页](https://bloginote.benbinbin.com/rss.xml)。
+
+最后为别忘了在 :page_facing_up: `nuxt.config.ts` 文件中进行配置，让 crawler 爬虫访问特定的 API，生成 `rss.xml` 文件
+
+```ts [nuxt.config.ts]
+export default defineNuxtConfig({
+  // ...
+  nitro: {
+    prerender: {
+      routes: ['/sitemap.xml', '/rss.xml']
+    }
+  },
+  // ...
+})
+```
