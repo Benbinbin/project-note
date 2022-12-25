@@ -54,7 +54,7 @@ export default defineNuxtConfig({
   typescript: {
     shim: false
   },
-  extends: ['bloginote-test'],
+  extends: ['bloginote'],
   content: {
     highlight: {
       // please check out all supported program languages list first https://github.com/shikijs/shiki/blob/main/docs/languages.md
